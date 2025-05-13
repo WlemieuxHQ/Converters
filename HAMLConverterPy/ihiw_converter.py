@@ -1,4 +1,6 @@
 import argparse
+from math import isnan
+from math import nan
 import xml.etree.ElementTree as ET #using System.Xml;
 from lxml import etree
 import pandas as pd
@@ -13,7 +15,8 @@ import copy
     /// Script was converted to Python by Teresa Tavella
     /// University of Bologna
     /// https://github.com/TessaTi/IHIW_Converter_py
-    
+    /// Script was modified to newer standards (HAML 0.4.4) by Livia Tran and William Lemieux
+    /// 
     /// Determines the manufacturer of the input file.
     /// The manufacturer can be Immucor or OneLambda.
     /// Immucor provides a file delimited with ",".
@@ -176,7 +179,7 @@ class Converter(object):
 
         try:
             # Data is the root element.
-            data = ET.Element("haml",xmlns='urn:HAML.Namespace', version = "0.4.3")
+            data = ET.Element("haml",xmlns='urn:HAML.Namespace', version = "0.4.4")
             # OLReader is a pandas DataFrame.
             # Each row is a namedtuple
             # The first row contains the negative control info.
@@ -194,6 +197,7 @@ class Converter(object):
             patientID='!!!'
             sampleID = '!!!'
             catalogID = ''
+            interpretation = None
 
             #rowlength = OLReader.shape[0]
             for line, row in enumerate(pandasCsvReader.itertuples(), 1):
@@ -203,6 +207,7 @@ class Converter(object):
                 currentRowSampleIDName = str(row.SampleIDName).strip()
                 currentRowPatientID = str(row.PatientID).strip()
                 currentRowCatalogID = str(row.CatalogID).strip()
+
 
                 # Some quick error checking..
                 # In one case the user submitted data that was missing sampleIDs. This shouldn't be accepted.
@@ -295,6 +300,7 @@ class Converter(object):
                             #print(' I detected a new Sample or Patient or Catalog ID. This should be the negative control row:' + str(row))
                             negativeControlRow = row
                             readerState = 'positive_control'
+                            interpretation = None
 
                         else:
                             # Parse the allele specificities, Ranking, and MFI
@@ -340,7 +346,7 @@ class Converter(object):
                                         locusDataRow=currentLocus
                                     else:
                                         # The second locus encountered for the heterodimer.
-                                        locusDataRow=locusDataRow+ '~' + currentLocus
+                                        locusDataRow=locusDataRow+ '&' + currentLocus
                                 else:
                                     pass
 
@@ -356,6 +362,31 @@ class Converter(object):
                                                         {'classification-entity': 'One Lambda Software',
                                                         'bead-rank': str(Ranking)})
 
+                            if (interpretation == None):
+                                try:
+                                    alI = str(row.Antibody_FinalAssignment_Class_I)
+                                    alII = str(row.Antibody_FinalAssignment_Class_II)
+                                    if (alI != "" and alI != "nan"):
+                                        if (alII != "" and alII != "nan"):
+                                            alstring = alI.replace(",","+") + "+" + alII.replace(",","+")
+                                        else:
+                                            alstring = alI.replace(",","+")
+                                    else:
+                                        if (alII != "" and alII != "nan"):
+                                            alstring = alII.replace(",","+")
+                                        else:
+                                            alstring = ""
+                                    interpretation = alstring
+                                except Exception as e:
+                                    print("Error handling " + str(row.Antibody_FinalAssignment_Class_I) + "/" + str(row.Antibody_FinalAssignment_Class_II))
+                                    print('Exception:' + str(e))
+                                    alstring = ""
+
+                                InterpretationElement = ET.SubElement(assayElement, 'interpretation')
+                                PosSpecElement = ET.SubElement(InterpretationElement, 'positive-specificities')
+                                PosSpecElement.text = str(alstring)
+
+                            
 
             # create a new XML file with the results
             self.xmlData = ET.tostring(data)
@@ -517,7 +548,7 @@ class Converter(object):
         # Write XML from that data.
         # TODO: Consider writing each sample to an individual HAML file. This would need to create child elements for each HAML.
         # for each sample id/row start converting
-        data = ET.Element("haml", xmlns='urn:HAML.Namespace', version='0.4.3')
+        data = ET.Element("haml", xmlns='urn:HAML.Namespace', version='0.4.4')
         labIDElement = makeSubElement(data, "reporting-center")
         labIDElement.text = self.labID
         labIDElement = makeSubElement(data, "document-context")

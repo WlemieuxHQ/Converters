@@ -64,7 +64,7 @@ def schema_validation_handler(event, context):
                 print('File ' + str(xmlKey) + ' is a .csv file, I will not perform schema validation.')
                 return None
             elif(fileExtension=='HAML' or fileExtension=='XML'):
-                schemaText = getSchemaText(schemaFileName='IHIW-haml_version_w0_3_3.xsd')
+                schemaText = getSchemaText(schemaFileName='haml__version_0_4_4.xsd')
                 validationResults = validateAgainstSchema(schemaText=schemaText, xmlText=xmlText)
                 print('ValidationResults:' + str(validationResults))
 
@@ -100,7 +100,7 @@ def schema_validation_handler(event, context):
 def getSchemaText(schemaFileName=None):
     # This assumes the schema files are in the current working directory. That is how they are bundled for AWS.
     print('Getting Schema Text from this local File:' + str(schemaFileName))
-    schemaFile=open(os.path.join(os.getcwd(),schemaFileName), 'r')
+    schemaFile=open(os.path.join(os.getcwd(),schemaFileName), 'r', encoding='utf-8')
     schemaText=schemaFile.read()
     #print('I found this text:' + str(schemaText))
     return schemaText

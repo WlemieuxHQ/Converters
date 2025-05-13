@@ -45,7 +45,7 @@ def testSchemaValidation(xmlFileName=None, schemaFileName=None):
     # xmlPath = 'xml/good.hml.1.0.1.xml'
     # schemaPath = 'schema/hml-1.0.1.xsd'
     # xmlPath = 'xml/bad.hml.1.0.1.xml'
-    # schemaPath = 'schema/IHIW-haml_version_w0_3_3.xsd'
+    # schemaPath = 'schema/haml__version_0_4_4.xsd'
     # xmlPath = 'xml/OutputImmucor.haml'
     print('Validating XML: ' + str(xmlFileName) + '\nagainst Schema: ' + str(schemaFileName) + '\n')
     schemaText = open(schemaFileName, 'rb').read()

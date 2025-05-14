@@ -115,7 +115,8 @@ class Converter(object):
 
     def determineManufacturer(self, pandasCsvReader=None):
         colOneLambda = ['PatientID', 'SampleIDName', 'RunDate', 'CatalogID', 'BeadID', 'Specificity', 'RawData','NC1BeadID','PC1BeadID', 'NC2BeadID','PC2BeadID', 'Rxn']
-        colImmucor = ['Sample ID', 'Patient ID', 'Lot ID', 'Run Date', 'Allele', 'Assignment', 'Raw Value']
+        colImmucorOld = ['Sample ID', 'Patient ID', 'Lot ID', 'Run Date', 'Allele', 'Assignment', 'Raw Value']
+        colImmucor = ['Sample ID', 'Patient Name', 'Lot ID', 'Run Date', 'Allele', 'Assignment', 'Raw Value']
 
         if(self.manufacturer is None):
 
@@ -128,7 +129,7 @@ class Converter(object):
 
             # Check if there is an intersection of the sets. Overlapping is good.
             # Does this work? think this will break if there are any overlapping column names. But there arent!
-            if (set(colnames) & set(colImmucor)):
+            if (set(colnames) & set(colImmucor) or set(colnames) & set(colImmucorOld)):
                 self.manufacturer = 'Immucor'
                 print('This is an Immucor File.')
             elif (set(colnames) & set(colOneLambda)):
@@ -400,237 +401,176 @@ class Converter(object):
     ########
     def ProcessImmucor(self, pandasCsvReader=None, reportingCenterID='?'):
         print('Immucor to xml...')
-
-        validationFeedback=''
-
-        # TODO: These rankings are assigned based on whether the bead is positive. Is 8/6/2 arbitrary? We're storing this value in the ranking for immucor files.
+        validationFeedback = ''
         switcher = {'Positive':8, 'Weak':6, 'Negative':2}
 
-        # A lookup for the columns. They're not very apparent in the pandas DataFrame so we need to find the data. I don't like Pandas, it is difficult.
-        immucorColumnNames = {'Sample_ID':-1, 'Patient_Name':-1, 'Lot_ID':-1, 'Run_Date':-1, 'Bead_ID':-1, 'Allele':-1, 'Assignment':-1, 'Raw_Value':-1}
+        try:
+            # Data is the root element.
+            data = ET.Element("haml",xmlns='urn:HAML.Namespace', version = "0.4.4")
+            # Each row is a namedtuple
+            reportingCenter = makeSubElement(data, 'reporting-center')
+            reportingCenter.text = self.labID
 
-        # colnames = [str(c.strip('"').strip().replace(' ', '_').replace('\ufeff"','')) for c in pandasCsvReader.columns.tolist()]
-        #print('Bad Colnames:' + str(pandasCsvReader.columns.tolist()))
-        print('Good Colnames:' + str([str(c.strip('"').strip().replace(' ', '_').replace('\ufeff"','')) for c in pandasCsvReader.columns.tolist()]))
+            documentContext = makeSubElement(data, 'document-context')
+            documentContext.text = 'Sample document context for working purposes'
+            
+            interpretation = None
+            Specs = None
+            BID = None
+            patientID='!!!'
+            sampleID = '!!!'
+            catalogID = ''
 
+            #rowlength = OLReader.shape[0]
+            for line, row in enumerate(pandasCsvReader.itertuples(), 1):
 
-        #colnames = pandasCsvReader.columns.tolist()
-        colnames = [str(c.strip('"').strip().replace(' ', '_').replace('\ufeff"','')) for c in pandasCsvReader.columns.tolist()]
+                #print('row:' + str(row))
 
-
-
-        for c in range(0,len(colnames)):
-            #print('c:' + str(c))
-            name = colnames[c]
-            #print('name:' + str(name))
-            immucorColumnNames[name] = c + 1 # 1-based vs 0-based indexing. Pandas stores data in 1-based. Dumb.
-            #print('immucorColNames:' + str(immucorColumnNames))
-
-        # Parse Data
-        # Structure = csvData[sampleID][patientID][runDate][lotID][allele] = (beadID, assignment, rawMFI)
-        csvData = {}
-
-        for row in pandasCsvReader.itertuples():
-            try:
-                sampleID = str(row[immucorColumnNames['Sample_ID']]).strip()
-            except Exception as e:
-                validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='Sample_ID was Missing!')
-                sampleID = '??'
-
-            try:
-                patientID = str(row[immucorColumnNames['Patient_Name']]).strip()
-            except Exception as e:
-                validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='Patient_ID was not found!')
-                patientID = '??'
-
-            try:
-                sampleTestDate = str(row[immucorColumnNames['Run_Date']]).strip()
-            except Exception as e:
-                validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='Run_Date was not found!')
-                sampleTestDate = '01/01/1900'
-
-            try:
-                lotID = str(row[immucorColumnNames['Lot_ID']]).strip()
-            except Exception as e:
-                validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='Lot_ID was not found!')
-                lotID = '??'
-
-            try:
-                allele = str(row[immucorColumnNames['Allele']]).strip()
-            except Exception as e:
-                validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='Allele was not found!')
-                allele = '??'
-
-            try:
-                assignment = str(row[immucorColumnNames['Assignment']]).strip()
-            except Exception as e:
-                validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='Assignment was not found!')
-                assignment = '??'
-
-            try:
-                rawMfi = str(row[immucorColumnNames['Raw_Value']]).strip()
-            except Exception as e:
-                validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='Raw_Value was not found!')
-                rawMfi = '??'
-
-            try:
-                beadID = str(row[immucorColumnNames['Bead_ID']]).strip()
-            except Exception as e:
-                validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='Bead_ID was not found!')
-                beadID = '??'
+                currentRowSampleIDName = str(row.SampleID).strip()
+                currentRowPatientID = str(row.PatientName).strip()
+                currentRowCatalogID = str(row.LotID).strip()
 
 
-            # Initiate some data structure
-            # Structure = csvData[sampleID][patientID][runDate][lotID][allele] = (beadID, assignment, rawMFI)
-            if sampleID not in csvData:
-                csvData[sampleID]={}
-            if patientID not in csvData[sampleID]:
-                csvData[sampleID][patientID]={}
-            if sampleTestDate not in csvData[sampleID][patientID]:
-                csvData[sampleID][patientID][sampleTestDate]={}
-            if lotID not in csvData[sampleID][patientID][sampleTestDate]:
-                csvData[sampleID][patientID][sampleTestDate][lotID]={}
+                # Some quick error checking..
+                # In one case the user submitted data that was missing sampleIDs. This shouldn't be accepted.
+                # print('delimiter =(' + self.delimiter + ')')
+                # print('sampleIDName= ' + str(row.SampleIDName))
+                if (currentRowSampleIDName is None or len(currentRowSampleIDName) == 0 or currentRowSampleIDName == 'nan'):
+                    currentRowSampleIDName = '?'
+                    feedbackText = 'Empty SampleIDName found, please provide SampleIDName in every row.'
+                    validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback=feedbackText + ' Row=' + str(row.Index))
 
-            # In the case of heterodimers, we must pair alleles.
-            if(allele.startswith('DPA1') or allele.startswith('DPB1') or allele.startswith('DQA1') or allele.startswith('DQB1')):
-                #print ('Heterodimer allele:' + str(allele))
+                if (currentRowPatientID is None or len(currentRowPatientID) == 0 or currentRowPatientID == 'nan'):
+                    currentRowPatientID = '?'
+                    feedbackText = 'Empty PatientID found, please provide PatientID in every row.'
+                    validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback=feedbackText + ' Row=' + str(row.Index))
 
-                # Assign the unpaired allele.
-                csvData[sampleID][patientID][sampleTestDate][lotID][allele + '_UNPAIRED_' + str(beadID)] = (beadID, assignment, rawMfi)
-                #print('assigned unpaired allele:' + str(allele + '_UNPAIRED_' + str(beadID)))
+                # Store some data for the current patient/sample/panel
+                if row.PatientName is None:
+                        # If we get here then there actually might be a problem.
+                        print('Reached the end of the input csv, breaking the loop. This means there was a newline at the end of the .csv, possibly malformed data.')
+                        break
 
-            else:
-                # These beads do not represent heterodimers. Store normally.
-                csvData[sampleID][patientID][sampleTestDate][lotID][allele] = (beadID, assignment, rawMfi)
+                if (currentRowSampleIDName != sampleID or currentRowPatientID != patientID or currentRowCatalogID != catalogID):
+                    
+                    interpretation = None
+                    Specs = None
+                    BID = None
+                    sampleID = currentRowSampleIDName
+                    patientID = currentRowPatientID
 
-        # Pair the Un-paired .CSV Files
-        print('Attempting to pair unpaired alleles.')
-        for sampleID in csvData:
-            for patientID in csvData[sampleID]:
-                for runDate in csvData[sampleID][patientID]:
-                    for lotID in csvData[sampleID][patientID][runDate]:
-
-                        unpairedAlleles = sorted([alleleName for alleleName in csvData[sampleID][patientID][runDate][lotID] if '_UNPAIRED' in alleleName])
-
-                        for leftUnpairedAllele in unpairedAlleles:
-                            for rightUnpairedAllele in unpairedAlleles:
-                                if (leftUnpairedAllele in csvData[sampleID][patientID][sampleTestDate][lotID].keys()
-                                    and rightUnpairedAllele in csvData[sampleID][patientID][sampleTestDate][lotID].keys()):
-
-                                    if (leftUnpairedAllele != rightUnpairedAllele
-                                        and csvData[sampleID][patientID][sampleTestDate][lotID][leftUnpairedAllele]
-                                        == csvData[sampleID][patientID][sampleTestDate][lotID][rightUnpairedAllele]):
-                                        #print('These are a pair:' + str(leftUnpairedAllele) + ' and ' + str(rightUnpairedAllele))
-
-
-                                        # Assign the heterodimer info
-                                        leftAlleleName = leftUnpairedAllele.split('_')[0]
-                                        rightAlleleName = rightUnpairedAllele.split('_')[0]
-                                        heterodimerName = leftAlleleName + '~' + rightAlleleName
-                                        csvData[sampleID][patientID][sampleTestDate][lotID][heterodimerName] = csvData[sampleID][patientID][sampleTestDate][lotID][leftUnpairedAllele]
-                                        #print('just assigned this allele:' + str(heterodimerName))
-
-                                        # remove the unpaired alleles
-                                        csvData[sampleID][patientID][sampleTestDate][lotID].pop(leftUnpairedAllele)
-                                        csvData[sampleID][patientID][sampleTestDate][lotID].pop(rightUnpairedAllele)
-                                    else:
-                                        #print('Not a pair:' + str(leftUnpairedAllele) + ' and ' + str(rightUnpairedAllele))
-                                        pass
-                                else:
-                                    pass
-                                    #print('One from this pair was already removed:' + str(leftUnpairedAllele) + str(rightUnpairedAllele))
-
-                        # Check if there are still unpaired alleles.
-                        unpairedAlleles = sorted([alleleName for alleleName in csvData[sampleID][patientID][runDate][lotID] if '_UNPAIRED' in alleleName])
-                        if(len(unpairedAlleles)>0):
-                            print('WARNING! There are still unpaired alleles!:' + str(unpairedAlleles))
-
-        # Write XML from that data.
-        # TODO: Consider writing each sample to an individual HAML file. This would need to create child elements for each HAML.
-        # for each sample id/row start converting
-        data = ET.Element("haml", xmlns='urn:HAML.Namespace', version='0.4.4')
-        labIDElement = makeSubElement(data, "reporting-center")
-        labIDElement.text = self.labID
-        labIDElement = makeSubElement(data, "document-context")
-        labIDElement.text = "Sample document context for working purposes"
-        # Structure = csvData[sampleID][patientID][runDate][lotID][allele] = (assignment, rawMFI)
-
-        # Each sampleID/patientID combination gets a patient-antibody-assessment element
-        for sampleID in csvData:
-            for patientID in csvData[sampleID]:
-                for runDate in csvData[sampleID][patientID]:
-                    # Get the PC and NC MFIs
-                    # TODO: there may be an edge-case bug here. If there are multiple lot IDs we might have multiple postive and negative control MFIs, may be hidden
-
-                    # TODO: What if the mfi are not an integer?
-                    for lotID in csvData[sampleID][patientID][runDate]:
-                        if('NC' in csvData[sampleID][patientID][runDate][lotID]):
-                            ncMfi = csvData[sampleID][patientID][runDate][lotID]['NC'][2]
-                        else:
-                            ncMfi = '-1'
-                            validationFeedback += 'Missing negative control for lot ' + str(lotID) + ';\n'
-                            # Reject the document here, set the validation to something smart.
-                            self.xmlData=''
-                            #return validationFeedback
-                        if('PC' in csvData[sampleID][patientID][runDate][lotID]):
-                            pcMfi = csvData[sampleID][patientID][runDate][lotID]['PC'][2]
-                        else:
-                            pcMfi = '-1'
-                            validationFeedback += 'Missing positive control for lot ' + str(lotID) + ';\n'
-                            # Reject the document here, set the validation to something smart.
-                            self.xmlData=''
-                            #return validationFeedback
-
-                    patientAntibodyAssmtElement = makeSubElement(data, 'patient', 
+                    patientElement = makeSubElement(data, 'patient',
                                                                  {'patient-id': patientID})
-                    sampleAntibodyAssmtElement = makeSubElement(patientAntibodyAssmtElement, 'sample',
+
+                    sampleElement = makeSubElement(patientElement, 'sample',
                                                                 {'sample-id': sampleID,
                                                                  'testing-laboratory': self.labID})
 
-                    # If the catalogID has changed, this is a new solid-phase-panel. But we also need this for any new sampleID or patientID
-                    for lotID in csvData[sampleID][patientID][runDate]:
-                        assayAntibodyAssmtElement = makeSubElement(sampleAntibodyAssmtElement, 'assay', 
-                                                                  {'assay-date': self.formatRunDate(runDate)})
-                        panelAntibodyAssmtElement = makeSubElement(assayAntibodyAssmtElement, 'working-sample', 
-                            {'working-sample-id': str(sampleID)})
-                        current_row_panel = makeSubElement(panelAntibodyAssmtElement, 'solid-phase-panel', 
-                            {'kit-manufacturer': str(self.manufacturer),
-                            'lot-number': str(lotID)
-                            })
+                    try:
+                        runDate = row.RunDate
+                        runDate = self.formatRunDate(runDate)
+                        assayElement = makeSubElement(sampleElement, 'assay',
+                                                                {'assay-date': self.formatRunDate(row.RunDate)})
+                    except Exception as e:
+                        assayElement = makeSubElement(sampleElement, 'assay')
+                
 
-                        for allele in csvData[sampleID][patientID][runDate][lotID]:
+                    workingSampleElement = makeSubElement(assayElement, 'working-sample',
+                                                               {'working-sample-id': str(sampleID)})
 
-                            beadID, beadAssignment, rawMfi = csvData[sampleID][patientID][runDate][lotID][allele]
+                    catalogID = currentRowCatalogID
 
-                            # Skip if it's NC or PC, we already printed those values.
-                            if(allele=='NC' and beadAssignment=='NC') or (allele=='PC' and beadAssignment=='PC'):
-                                #print('Skipping this positive/negative control bead.')
-                                pass
-                            else:
-                                #print('Checking Bead assignment:' + str(beadAssignment))
-                                try:
-                                    ranking = switcher[beadAssignment]
-                                except Exception as e:
-                                    validationFeedback = appendFeedback(validationFeedback=validationFeedback, newFeedback='I do not understand this bead assignment, I expected Positive/Negative:' + str(beadAssignment))
-                                    ranking = 2  # default value, this is negative
+                    solidPhasePanel = makeSubElement(workingSampleElement, 'solid-phase-panel', None)
+                    kitManufacturer = makeSubElement(solidPhasePanel, 'kit-manufacturer')
+                    kitManufacturer.text = self.manufacturer
 
-                                current_row_panel_bead = makeSubElement(current_row_panel, 'bead')
-                                current_row_panel_beadInfo = makeSubElement(current_row_panel_bead, 'bead-info', 
-                                                                           {'HLA-target-type': str(allele),
-                                                                            'bead-id': str(beadID)})
-                                current_row_panel_beadRaw = makeSubElement(current_row_panel_bead, 'raw-data', 
-                                                                           {'sample-raw-MFI': rawMfi})
-                                current_row_panel_beadAdjusted = makeSubElement(current_row_panel_bead, 'converted-data')
-                                current_row_panel_beadInterpretation = makeSubElement(current_row_panel_beadAdjusted, 'bead-interpretation', 
-                                                                           {'classification-entity': 'MatchIt',
-                                                                            'bead-classification': beadAssignment,
-                                                                            'bead-rank': str(switcher[beadAssignment])})
-                                #TODO check if we need to convert +- to # or # to +-
+                    lot = makeSubElement(solidPhasePanel, 'lot-number')
+                    lot.text = catalogID
+
+                    # TODO: Consider writing each sample to an individual HAML file. This would need to create child elements for each HAML.
+                    #   We kind of want to do that with HML as well. Issue 189 on Github
 
 
-        self.xmlData = ET.tostring(data)
-        self.prettyPrintXml()
+                # Parse the allele specificities, Ranking, and MFI
+                # Are Specificities ever going to be delimited by something other than commas? Is that possible?
+                Specs = row.Allele
+                try:
+                    Raw = int(round(float(str(row.RawValue).replace(',','.'))))
+                    #print('Raw:' + str(Raw))
+                except Exception as e:
+                    Raw = -1
+                    print('Could not identify values for raw MFI(' + str(row.RawValue)
+                                + ') . SampleID = ' + str(currentRowSampleIDName) + '. PatientID = ' + str(currentRowPatientID) + '. Data was in an unexpected format.')
+                    print('Exception:' + str(e))
+
+                try:
+                    assn = row.Assignment
+                    rank = switcher[assn]
+                except Exception as e:
+                    assn = "Undetermined"
+                    rank = "Undetermined" 
+                    print('Could not identify assignment and rank (' + str(row.Assignment)
+                                + ') . SampleID = ' + str(currentRowSampleIDName) + '. PatientID = ' + str(currentRowPatientID) + '. Data was in an unexpected format.')
+                    print('Exception:' + str(e))
+                            
+                try:
+                    Norm = int(round(float(str(row.MFI_LRA).replace(',','.'))))
+                    #print('Norm:' + str(Norm))
+                except Exception as e:
+                    Norm = -1
+                    print('Could not identify values for normalized value (' + str(row.NormalValue)
+                        + ') . SampleID = ' + str(currentRowSampleIDName) + '. PatientID = ' + str(currentRowPatientID) + '. Data was in an unexpected format.')
+                    print('Exception:' + str(e))
+                # TODO: We're not assigning the ranking in the best way.
+                #  A better strategy is to load all the MFIs and give them a ranking. Before writing the values. Add this logic.
+                try:
+                    currentBID = row.AntigenID
+                except Exception as e:
+                    currentBID = row.Bead_ID
+                if (BID != currentBID):
+                    # What allele is this data row for?
+                    locusDataRow = Specs
+
+                    beadElement = makeSubElement(solidPhasePanel, 'bead', None)
+                    beadInfo = makeSubElement(beadElement, 'bead-info')
+                    BIDElement = ET.SubElement(beadInfo, 'bead-id')
+                    BIDElement.text = str(currentBID)
+                    HLAElement = ET.SubElement(beadInfo, 'HLA-target-type')
+                    HLAElement.text = str(locusDataRow)
+
+                    rawData = makeSubElement(beadElement, 'raw-data', {'sample-raw-MFI': str(Raw)})
+                    adjustedData = makeSubElement(beadElement, 'converted-data', {'sample-adjusted-MFI': str(Norm)})
+                    beadInterp = makeSubElement(adjustedData, 'bead-interpretation', 
+                                                {'classification-entity': 'Immucor Software',
+                                                    'bead-classification': assn,
+                                                    'bead-rank': str(rank)})
+                else:
+                    HLAElement.text = str(locusDataRow+"&"+Specs)
+                BID = currentBID
+
+                try:
+                    if (row.IsAssigned == "YES"):
+                        if (interpretation == "" or interpretation is None):
+                            interpretation = row.Allele
+                            InterpretationElement = ET.SubElement(assayElement, 'interpretation')
+                            PosSpecElement = ET.SubElement(InterpretationElement, 'positive-specificities')
+                            PosSpecElement.text = str(interpretation)
+                        else:
+                            interpretation = interpretation + "+" + row.Allele
+                            PosSpecElement.text = str(interpretation)
+                        
+                except Exception as e:
+                    print("Error handling " + str(row.Allele) + "/" + str(row.IsAssigned))
+                    print('Exception:' + str(e))
+                            
+
+            # create a new XML file with the results
+            self.xmlData = ET.tostring(data)
+            self.prettyPrintXml()
+        except Exception as e:
+            validationFeedback+= 'Exception when reading file:' + str(e) + ';\n'
         return validationFeedback
+ 
 
 
     def convert(self):
@@ -681,6 +621,9 @@ def readCsvFile(csvFileName=None, delimiter=None, allFieldsQuoted=False):
             pandasCsvReader = pd.read_csv(copyInputFile, sep=delimiter, engine="python")
 
         pandasCsvReader = pandasCsvReader.loc[:,~pandasCsvReader.columns.str.contains('^Unnamed')]  # eliminate empty columns at the end
+
+        pandasCsvReader.rename(columns=lambda x: x.replace(' ',''), inplace=True)
+        pandasCsvReader.rename(columns=lambda x: x.replace('/','_'), inplace=True)
 
         return pandasCsvReader
 

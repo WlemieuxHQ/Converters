@@ -1,11 +1,13 @@
 {
   "ExpandedNodes": [
     "",
+    "\\CSVexportDirectives",
     "\\HAMLConverterPy",
     "\\HAMLConverterPy\\inputcsv",
     "\\HAMLConverterPy\\outputhaml",
+    "\\XmlValidator",
     "\\XmlValidator\\schema"
   ],
-  "SelectedNode": "\\LocalValidation.py",
+  "SelectedNode": "\\HAMLConverterPy\\ihiw_converter.py",
   "PreviewInSolutionExplorer": false
 }

@@ -11,8 +11,8 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:HAMLConverterPy\\ihiw_converter.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\willi\\OneDrive\\Documents\\GitHub\\Converters\\XmlValidator\\SchemaValidation.py||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:XmlValidator\\SchemaValidation.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\willi\\OneDrive\\Documents\\GitHub\\Converters\\CSVexportDirectives\\Directives.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CSVexportDirectives\\Directives.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,8 +22,21 @@
       "DocumentGroups": [
         {
           "DockedHeight": 284,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Directives.md",
+              "DocumentMoniker": "C:\\Users\\willi\\OneDrive\\Documents\\GitHub\\Converters\\CSVexportDirectives\\Directives.md",
+              "RelativeDocumentMoniker": "CSVexportDirectives\\Directives.md",
+              "ToolTip": "C:\\Users\\willi\\OneDrive\\Documents\\GitHub\\Converters\\CSVexportDirectives\\Directives.md",
+              "RelativeToolTip": "CSVexportDirectives\\Directives.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAABXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-05-14T07:48:50.367Z",
+              "EditorCaption": ""
+            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
@@ -32,7 +45,7 @@
               "RelativeDocumentMoniker": "LocalValidation.py",
               "ToolTip": "C:\\Users\\willi\\OneDrive\\Documents\\GitHub\\Converters\\LocalValidation.py",
               "RelativeToolTip": "LocalValidation.py",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAABAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
               "WhenOpened": "2025-05-12T13:08:44.68Z",
               "EditorCaption": ""
@@ -45,22 +58,9 @@
               "RelativeDocumentMoniker": "HAMLConverterPy\\ihiw_converter.py",
               "ToolTip": "C:\\Users\\willi\\OneDrive\\Documents\\GitHub\\Converters\\HAMLConverterPy\\ihiw_converter.py",
               "RelativeToolTip": "HAMLConverterPy\\ihiw_converter.py",
-              "ViewState": "AgIAAG4BAAAAAAAAAAAAAIIBAABDAAAAAAAAAA==",
+              "ViewState": "AgIAALoBAAAAAAAAAAAnwMUBAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
               "WhenOpened": "2025-05-12T12:05:16.856Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "SchemaValidation.py",
-              "DocumentMoniker": "C:\\Users\\willi\\OneDrive\\Documents\\GitHub\\Converters\\XmlValidator\\SchemaValidation.py",
-              "RelativeDocumentMoniker": "XmlValidator\\SchemaValidation.py",
-              "ToolTip": "C:\\Users\\willi\\OneDrive\\Documents\\GitHub\\Converters\\XmlValidator\\SchemaValidation.py",
-              "RelativeToolTip": "XmlValidator\\SchemaValidation.py",
-              "ViewState": "AgIAAGsAAAAAAAAAAAAawHgAAAATAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
-              "WhenOpened": "2025-05-12T12:03:00.712Z",
               "EditorCaption": ""
             }
           ]

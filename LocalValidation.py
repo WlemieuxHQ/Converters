@@ -7,8 +7,11 @@ def read_file(file_name):
     return file_text
 
 for f in ["HAMLConverterPy/inputcsv/OLSampleCI2025-05-13.csv", 
-          "HAMLConverterPy/inputcsv/OLSampleCII2025-05-13.csv"]:
+          "HAMLConverterPy/inputcsv/OLSampleCII2025-05-13.csv",
+          "HAMLConverterPy/inputcsv/IWSampleCI2025-05-13.csv", 
+          "HAMLConverterPy/inputcsv/IWSampleCII2025-05-13.csv"]:
     o = f.replace("inputcsv", "outputhaml").replace(".csv", ".haml")
+    print("\\n\\nConverting " + f)
     converter = ihiw_converter.Converter(csvFileName=f, manufacturer=None, xmlFile=o, labID="Unavailable")
     converter.convert()
 

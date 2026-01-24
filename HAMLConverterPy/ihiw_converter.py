@@ -504,7 +504,7 @@ class Converter(object):
                     print('Exception:' + str(e))
 
                 try:
-                    assn = row.Assignment
+                    assn = row.Assignment.strip()
                     rank = switcher[assn]
                 except Exception as e:
                     assn = "Undetermined"
@@ -523,6 +523,18 @@ class Converter(object):
                     print('Exception:' + str(e))
                 # TODO: We're not assigning the ranking in the best way.
                 #  A better strategy is to load all the MFIs and give them a ranking. Before writing the values. Add this logic.
+
+                # Adding support for BG and AD-BG
+                try:
+                    NormBG = int(round(float(str(row.BGAdjusted).replace(',','.'))))
+                except Exception as e:
+                    NormBG = -1
+
+                try:
+                    NormADBG = int(round(float(str(row.AD_BGAdjusted).replace(',','.'))))
+                except Exception as e:
+                    NormADBG = -1
+
                 try:
                     currentBID = row.AntigenID
                 except Exception as e:
@@ -539,11 +551,18 @@ class Converter(object):
                     HLAElement.text = str(locusDataRow)
 
                     rawData = makeSubElement(beadElement, 'raw-data', {'sample-raw-MFI': str(Raw)})
-                    adjustedData = makeSubElement(beadElement, 'converted-data', {'sample-adjusted-MFI': str(Norm)})
+                    adjustedData = makeSubElement(beadElement, 'converted-data', {'sample-adjusted-MFI': str(Norm),
+                                                                                  'formula': 'MFI/LRA'})
                     beadInterp = makeSubElement(adjustedData, 'bead-interpretation', 
                                                 {'classification-entity': 'Immucor Software',
                                                     'bead-classification': assn,
                                                     'bead-rank': str(rank)})
+                    if (NormBG != -1):
+                        adjustedDataBG = makeSubElement(beadElement, 'converted-data', {'sample-adjusted-MFI': str(NormBG),
+                                                                                        'formula': 'MFI-BG'})
+                    if (NormADBG != -1):
+                        adjustedDataADBG = makeSubElement(beadElement, 'converted-data', {'sample-adjusted-MFI': str(NormADBG),
+                                                                                          'formula': 'MFI-BG (AD adjusted)'})
                 else:
                     HLAElement.text = str(locusDataRow+"&"+Specs)
                 BID = currentBID
@@ -624,6 +643,7 @@ def readCsvFile(csvFileName=None, delimiter=None, allFieldsQuoted=False):
 
         pandasCsvReader.rename(columns=lambda x: x.replace(' ',''), inplace=True)
         pandasCsvReader.rename(columns=lambda x: x.replace('/','_'), inplace=True)
+        pandasCsvReader.rename(columns=lambda x: x.replace('-','_'), inplace=True)
 
         return pandasCsvReader
 

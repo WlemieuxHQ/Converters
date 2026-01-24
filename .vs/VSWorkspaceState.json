@@ -1,7 +1,6 @@
 {
   "ExpandedNodes": [
     "",
-    "\\CSVexportDirectives",
     "\\HAMLConverterPy",
     "\\HAMLConverterPy\\inputcsv",
     "\\HAMLConverterPy\\outputhaml",
